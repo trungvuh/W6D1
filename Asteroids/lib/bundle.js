@@ -98,10 +98,29 @@ let GameView = function (ctx) {
 };
 
 GameView.prototype.start = function () {
+  this.bindKeyHandlers();
   setInterval(() => {
     this.game.step();
     this.game.draw(this.ctx);
   }, 20);
+};
+
+GameView.prototype.bindKeyHandlers = function () {
+  key('w', () => {
+    this.game.ship.power([0,-1]);
+  });
+  key('a', () => {
+    this.game.ship.power([-1,0]);
+  });
+  key('d', () => {
+    this.game.ship.power([1,0]);
+  });
+  key('s', () => {
+    this.game.ship.power([0,1]);
+  });
+  key('space', () => {
+    this.game.ship.fireBullet();
+  });
 };
 
 module.exports = GameView;
@@ -113,6 +132,7 @@ module.exports = GameView;
 
 const Asteroid = __webpack_require__ (3);
 const Ship = __webpack_require__ (6);
+const Bullet = __webpack_require__ (7);
 
 // const DEFAULTS = {
 //   DIM_X: 500,
@@ -122,6 +142,7 @@ const Ship = __webpack_require__ (6);
 
 let Game = function () {
   this.asteroids = [];
+  this.bullets = [];
   this.addAsteroids();
   this.ship = new Ship ({
     pos: this.randomPostition(),
@@ -181,12 +202,25 @@ Game.prototype.step = function () {
   this.checkCollisions();
 };
 
-Game.prototype.remove = function(asteroid) {
-  this.asteroids.splice(this.asteroids.indexOf(asteroid), 1);
+Game.prototype.remove = function(obj) {
+  if(obj instanceof Asteroid) {
+    this.asteroids.splice(this.asteroids.indexOf(obj), 1);
+  } else if(obj instanceof Bullet) {
+    this.bullets.splice(this.bullets.indexOf(obj), 1);
+  }
 };
 
 Game.prototype.allObjects = function () {
-  return this.asteroids.concat(this.ship);
+  return this.asteroids.concat(this.ship, this.bullets);
+};
+
+
+Game.prototype.add = function(obj) {
+  if(obj instanceof Asteroid) {
+    this.asteroids.push(obj);
+  } else if(obj instanceof Bullet) {
+    this.bullets.push(obj);
+  }
 };
 
 
@@ -256,7 +290,7 @@ MovingObject.prototype.move = function () {
   this.pos[0] += this.vel[0];
   this.pos[1] += this.vel[1];
   if(this.pos[0] < 0 || this.pos[0] > this.game.DIM_X || this.pos[1] < 0 || this.pos[1] > this.game.DIM_Y) {
-    this.pos = this.game.wrap(this.pos);
+      this.pos = this.game.wrap(this.pos);
   }
 };
 
@@ -310,6 +344,7 @@ module.exports = Util;
 
 const Util = __webpack_require__(5);
 const MovingObject = __webpack_require__(4);
+const Bullet = __webpack_require__ (7);
 
 let Ship = function(options = {}) {
   MovingObject.call(this, {
@@ -332,7 +367,49 @@ Ship.prototype.relocate = function () {
   this.vel = [0,0];
 };
 
+Ship.prototype.power = function(impulse) {
+  this.vel[0] += impulse[0];
+  this.vel[1] += impulse[1];
+};
+
+Ship.prototype.fireBullet = function () {
+  let bullet = new Bullet ({
+    pos: this.pos,
+    vel: this.vel,
+    game: this.game
+  });
+  this.game.add(bullet);
+};
+
 module.exports = Ship;
+
+
+/***/ }),
+/* 7 */
+/***/ (function(module, exports, __webpack_require__) {
+
+const MovingObject = __webpack_require__ (4);
+const Util = __webpack_require__ (5);
+
+let Bullet = function (options = {}) {
+  MovingObject.call(this, {
+    pos: options.pos,
+    vel: options.vel || Util.randomVec(1),
+    radius: Bullet.RADIUS,
+    color: Bullet.COLOR,
+    game: options.game
+  });
+};
+
+Util.inherits(Bullet, MovingObject);
+
+Bullet.COLOR = 'green';
+Bullet.RADIUS = 2;
+
+
+
+
+module.exports = Bullet;
 
 
 /***/ })
